@@ -6,27 +6,27 @@ const cron = require("node-cron");
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
-// 📩 При любом сообщении сохраняем chatId и пользователя
-bot.on("message", (msg) => {
+
+bot.onText(/\/pushups\s+(\d+)/, (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
-  const text = msg.text;
+  const count = parseInt(match[1]);
 
-  saveChatIdIfMissing(chatId);
-  addUser(userId, msg.from.first_name);
-
-  if (!text) return;
-
-  const match = text.match(/#pushups(\d+)/i);
-  if (match) {
-    const count = parseInt(match[1]);
-    completePushups(userId, count);
-
+  if (isNaN(count) || count <= 0) {
     bot.sendMessage(
       chatId,
-      `✅ Принято: ${msg.from.first_name} сделал(а) ${count} отжиманий!`
+      "❌ Введи количество отжиманий, например: /pushups 20"
     );
+    return;
   }
+
+  addUser(userId, msg.from.first_name);
+  completePushups(userId, count);
+
+  bot.sendMessage(
+    chatId,
+    `✅ Принято: ${msg.from.first_name} сделал(а) ${count} отжиманий!`
+  );
 });
 
 // 📊 Общая статистика
@@ -65,7 +65,7 @@ bot.onText(/\/me/, (msg) => {
 });
 
 // 🔄 Сброс своей статистики
-bot.onText(/\/resetMe/, (msg) => {
+bot.onText(/\/resetme/, (msg) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
   const data = loadData();
@@ -80,12 +80,12 @@ bot.onText(/\/resetMe/, (msg) => {
 });
 
 // 🕘 Утренний и вечерний отчёты
-cron.schedule("0 9 * * *", () => {
+cron.schedule("0 8 * * *", () => {
   console.log("⏰ Утренний отчёт");
   sendDailyReport();
 });
 
-cron.schedule("0 21 * * *", () => {
+cron.schedule("0 22 * * *", () => {
   console.log("🌙 Вечерний отчёт");
   sendDailyReport();
 });
@@ -152,7 +152,7 @@ function sendDailyReport() {
   const data = loadData();
   const today = new Date();
   const dayNumber =
-    Math.floor((today - new Date("2024-05-01")) / (1000 * 60 * 60 * 24)) + 1;
+    Math.floor((today - new Date("2025-05-09")) / (1000 * 60 * 60 * 24)) + 1;
   const requiredPushups = 10 + dayNumber - 1;
 
   let message = `📅 День ${dayNumber}: сегодня нужно сделать ${requiredPushups} отжиманий.\n\n`;
