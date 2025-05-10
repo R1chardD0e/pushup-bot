@@ -6,7 +6,27 @@ const cron = require("node-cron");
 const token = process.env.BOT_TOKEN;
 const bot = new TelegramBot(token, { polling: true });
 
+// Регистрацуия участника
+bot.onText(/\/start/, (msg) => {
+  const chatId = msg.chat.id;
+  const userId = msg.from.id.toString();
+  const data = loadData();
 
+  if (!data.users || !data.users[userId]) {
+    addUser(userId, msg.from.first_name);
+    bot.sendMessage(
+      chatId,
+      `👋 Привет, ${msg.from.first_name}! Ты зарегистрирован(а) в челендже!`
+    );
+    return;
+  }
+  bot.sendMessage(
+    chatId,
+    `👋 Привет, ${msg.from.first_name}! Ты уже зарегистрирован(а) в челендже!`
+  );
+});
+
+// Подсчет отжиманий
 bot.onText(/\/pushups\s+(\d+)/, (msg, match) => {
   const chatId = msg.chat.id;
   const userId = msg.from.id.toString();
@@ -93,11 +113,10 @@ cron.schedule("0 22 * * *", () => {
 // ========== ФУНКЦИИ ==========
 
 function loadData() {
-  try {
-    return JSON.parse(fs.readFileSync("data.json", "utf-8"));
-  } catch {
-    return { users: {}, chatIds: [] };
+  if (!fs.existsSync("data.json")) {
+    fs.writeFileSync("data.json", JSON.stringify({ users: {}, currentDay: 1 }));
   }
+  return JSON.parse(fs.readFileSync("data.json", "utf-8"));
 }
 
 function saveData(data) {
